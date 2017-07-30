@@ -1,8 +1,11 @@
+import numpy as np
+import pandas as pd
 import piweather
-from pandas import DataFrame, Timestamp
 
 
 class Measurement(object):
+
+    data_frame = pd.DataFrame()
 
     def __init__(self, sensor, table=None, frequency=0):
         self._sensor = sensor
@@ -36,13 +39,53 @@ class Measurement(object):
     def acquire(self):
         raise NotImplementedError("Override this method!")
 
-    def _store(self, df):
-        df.to_sql(self._table, piweather.db, if_exists='append', index=False)
+    def _store(self):
+        self.data_frame.to_sql(
+            self._table, piweather.db, if_exists='append', index=False)
 
 
 class Single(Measurement):
 
+    data_frame = pd.DataFrame({
+        'time':  pd.Series([np.nan], dtype=np.datetime64),
+        'value': pd.Series([np.nan], dtype=np.float64),
+    }, index=[0])
+
     def acquire(self):
-        val = self._sensor.value
-        data = DataFrame({'time': Timestamp.now(), 'value': val}, index=[0])
-        self._store(data)
+        self.data_frame.value = self._sensor.value
+        self.data_frame.time = pd.Timestamp.now()
+        self._store()
+
+
+class Statistical(Measurement):
+
+    data_frame = pd.DataFrame({
+        'time': pd.Series([np.nan], dtype=np.datetime64),
+        'mean': pd.Series([np.nan], dtype=np.float64),
+        'std':  pd.Series([np.nan], dtype=np.float64),
+        'min':  pd.Series([np.nan], dtype=np.float64),
+        'max':  pd.Series([np.nan], dtype=np.float64),
+    }, index=[0])
+
+    def __init__(self, sensor, nSamples, *args, **kwargs):
+        super(Statistical, self).__init__(sensor, *args, **kwargs)
+        self._nSamples = nSamples
+        self._live_data = list()
+
+    def acquire(self):
+        self._live_data.append(self._sensor.value)
+        if self.remaining_polls():
+            return
+
+        self.data_frame.loc[0, :] = (
+            pd.Timestamp.now(),
+            np.mean(self._live_data),
+            np.std(self._live_data),
+            np.min(self._live_data),
+            np.max(self._live_data),
+        )
+        self._store()
+        self._live_data = list()
+
+    def remaining_polls(self):
+        return self._nSamples - len(self._live_data)

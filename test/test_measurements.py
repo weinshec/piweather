@@ -1,6 +1,5 @@
 import pandas as pd
 import time
-import unittest
 from unittest.mock import patch, PropertyMock
 
 import piweather
@@ -54,7 +53,11 @@ class TestMeasurements(TransientDBTestCase):
 
 class TestStatisticalMeasurement(TransientDBTestCase):
 
-    pass
-
-    # def test_statistical_measurement_polls_sensor_multiple_times(self):
-        # stat = measurements.Statistical(sensors.Dummy(), poll=0.1)
+    def test_statistical_measurement_polls_sensor_multiple_times(self):
+        stat = measurements.Statistical(
+            sensors.Dummy(), nSamples=2, table="dummy_table")
+        stat.acquire()
+        stat.acquire()
+        with piweather.db.connect() as conn, conn.begin():
+            data = pd.read_sql_table("dummy_table", conn)
+        self.assertEqual(len(data), 1)
