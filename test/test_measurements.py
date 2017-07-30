@@ -1,22 +1,15 @@
 import pandas as pd
 import time
 import unittest
-from sqlalchemy import create_engine
 from unittest.mock import patch, PropertyMock
 
 import piweather
 from piweather import measurements
 from piweather import sensors
+from test import TransientDBTestCase
 
 
-class TestMeasurements(unittest.TestCase):
-
-    def setUp(self):
-        piweather.db = create_engine('sqlite:///:memory:')
-
-    def tearDown(self):
-        for job in piweather.scheduler.get_jobs():
-            job.remove()
+class TestMeasurements(TransientDBTestCase):
 
     def assertNumberOfJobs(self, n):
         self.assertEquals(len(piweather.scheduler.get_jobs()), n)
@@ -57,6 +50,11 @@ class TestMeasurements(unittest.TestCase):
         with piweather.db.connect() as conn, conn.begin():
             data = pd.read_sql_table("dummy_table", conn)
         self.assertEqual(len(data), 2)
+
+
+class TestStatisticalMeasurement(TransientDBTestCase):
+
+    pass
 
     # def test_statistical_measurement_polls_sensor_multiple_times(self):
         # stat = measurements.Statistical(sensors.Dummy(), poll=0.1)
