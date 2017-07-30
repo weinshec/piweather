@@ -2,7 +2,7 @@ import piweather
 from pandas import DataFrame, Timestamp
 
 
-class Single(object):
+class Measurement(object):
 
     def __init__(self, sensor, table=None, frequency=0):
         self._sensor = sensor
@@ -34,9 +34,15 @@ class Single(object):
                 self._job = None
 
     def acquire(self):
-        val = self._sensor.value
-        data = DataFrame({'time': Timestamp.now(), 'value': val}, index=[0])
-        self._store(data)
+        raise NotImplementedError("Override this method!")
 
     def _store(self, df):
         df.to_sql(self._table, piweather.db, if_exists='append', index=False)
+
+
+class Single(Measurement):
+
+    def acquire(self):
+        val = self._sensor.value
+        data = DataFrame({'time': Timestamp.now(), 'value': val}, index=[0])
+        self._store(data)
