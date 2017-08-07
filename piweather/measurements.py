@@ -1,3 +1,4 @@
+import logging
 import numpy as np
 import pandas as pd
 import piweather
@@ -38,15 +39,30 @@ class Measurement(object):
     def last(self):
         return getattr(self, "_last", None)
 
+    @property
+    def table(self):
+        return getattr(self, "_table", None)
+
     def acquire(self):
         raise NotImplementedError("Override this method!")
 
+    def data(self, since=None):
+        if self.table is None:
+            logging.warning("No table specified for this measurement!")
+            return None
+
+        sql_query = "SELECT * FROM {}".format(self.table)
+        if since is not None:
+            sql_query += " WHERE time >= '{}'".format(since)
+        return pd.read_sql_query(sql_query, piweather.db)
+
     def _store(self, **kwargs):
+        kwargs["time"] = pd.Timestamp.now()
         df = pd.DataFrame(
             {key: pd.Series([val], index=[0]) for key, val in kwargs.items()})
         self._last = df
         if self._table is not None:
-            df.to_sql(self._table,
+            df.to_sql(self.table,
                       piweather.db,
                       if_exists='append',
                       index=False)
@@ -55,10 +71,7 @@ class Measurement(object):
 class Single(Measurement):
 
     def acquire(self):
-        self._store(
-            time=pd.Timestamp.now(),
-            value=self._sensor.value,
-        )
+        self._store(value=self._sensor.value)
 
 
 class Statistical(Measurement):
@@ -75,7 +88,6 @@ class Statistical(Measurement):
             return
 
         self._store(
-            time=pd.Timestamp.now(),
             mean=np.mean(self._data),
             std=np.std(self._data),
             min=np.min(self._data),

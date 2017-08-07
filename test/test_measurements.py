@@ -56,6 +56,17 @@ class TestMeasurements(TransientDBTestCase):
         s.acquire()
         self.assertIsInstance(s.last, pd.DataFrame)
 
+    def test_can_query_measurements_from_db(self):
+        s = measurements.Single(sensors.Dummy(), table="query_table")
+        s.acquire()
+        time.sleep(0.1)
+        ts = pd.Timestamp.now()
+        time.sleep(0.1)
+        s.acquire()
+
+        self.assertEquals(len(s.data()), 2)
+        self.assertEquals(len(s.data(since=ts)), 1)
+
 
 class TestStatisticalMeasurement(TransientDBTestCase):
 
