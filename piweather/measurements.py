@@ -61,7 +61,7 @@ class Measurement(object):
         df = pd.DataFrame(
             {key: pd.Series([val], index=[0]) for key, val in kwargs.items()})
         self._last = df
-        if self._table is not None:
+        if self.table is not None:
             df.to_sql(self.table,
                       piweather.db,
                       if_exists='append',
