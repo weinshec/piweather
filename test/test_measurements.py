@@ -48,16 +48,23 @@ class TestMeasurements(TransientDBTestCase):
         s.acquire()
         with piweather.db.connect() as conn, conn.begin():
             data = pd.read_sql_table("dummy_table", conn)
-        self.assertEqual(len(data), 2)
+        self.assertEquals(len(data), 2)
+
+    def test_measurment_has_last_acquisition_stored(self):
+        s = measurements.Single(sensors.Dummy())
+        self.assertIsNone(s.last)
+        s.acquire()
+        self.assertIsInstance(s.last, pd.DataFrame)
 
 
 class TestStatisticalMeasurement(TransientDBTestCase):
 
     def test_statistical_measurement_polls_sensor_multiple_times(self):
         stat = measurements.Statistical(
-            sensors.Dummy(), nSamples=2, table="dummy_table")
+            sensors.Dummy(), nSamples=2, table="stat_table")
+        stat.acquire()
         stat.acquire()
         stat.acquire()
         with piweather.db.connect() as conn, conn.begin():
-            data = pd.read_sql_table("dummy_table", conn)
+            data = pd.read_sql_table("stat_table", conn)
         self.assertEqual(len(data), 1)

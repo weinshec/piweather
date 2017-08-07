@@ -5,8 +5,6 @@ import piweather
 
 class Measurement(object):
 
-    data_frame = pd.DataFrame()
-
     def __init__(self, sensor, table=None, frequency=0):
         self._sensor = sensor
         self._table = table
@@ -36,56 +34,55 @@ class Measurement(object):
                 self._job.remove()
                 self._job = None
 
+    @property
+    def last(self):
+        return getattr(self, "_last", None)
+
     def acquire(self):
         raise NotImplementedError("Override this method!")
 
-    def _store(self):
-        self.data_frame.to_sql(
-            self._table, piweather.db, if_exists='append', index=False)
+    def _store(self, **kwargs):
+        df = pd.DataFrame(
+            {key: pd.Series([val], index=[0]) for key, val in kwargs.items()})
+        self._last = df
+        if self._table is not None:
+            df.to_sql(self._table,
+                      piweather.db,
+                      if_exists='append',
+                      index=False)
 
 
 class Single(Measurement):
 
-    data_frame = pd.DataFrame({
-        'time':  pd.Series([np.nan], dtype=np.datetime64),
-        'value': pd.Series([np.nan], dtype=np.float64),
-    }, index=[0])
-
     def acquire(self):
-        self.data_frame.value = self._sensor.value
-        self.data_frame.time = pd.Timestamp.now()
-        self._store()
+        self._store(
+            time=pd.Timestamp.now(),
+            value=self._sensor.value,
+        )
 
 
 class Statistical(Measurement):
 
-    data_frame = pd.DataFrame({
-        'time': pd.Series([np.nan], dtype=np.datetime64),
-        'mean': pd.Series([np.nan], dtype=np.float64),
-        'std':  pd.Series([np.nan], dtype=np.float64),
-        'min':  pd.Series([np.nan], dtype=np.float64),
-        'max':  pd.Series([np.nan], dtype=np.float64),
-    }, index=[0])
-
     def __init__(self, sensor, nSamples, *args, **kwargs):
         super(Statistical, self).__init__(sensor, *args, **kwargs)
         self._nSamples = nSamples
-        self._live_data = list()
+        self._data = list()
 
     def acquire(self):
-        self._live_data.append(self._sensor.value)
-        if self.remaining_polls():
+        self._data.append(self._sensor.value)
+
+        if not self.acquisition_complete():
             return
 
-        self.data_frame.loc[0, :] = (
-            pd.Timestamp.now(),
-            np.mean(self._live_data),
-            np.std(self._live_data),
-            np.min(self._live_data),
-            np.max(self._live_data),
+        self._store(
+            time=pd.Timestamp.now(),
+            mean=np.mean(self._data),
+            std=np.std(self._data),
+            min=np.min(self._data),
+            max=np.max(self._data),
         )
-        self._store()
-        self._live_data = list()
 
-    def remaining_polls(self):
-        return self._nSamples - len(self._live_data)
+        self._data = list()
+
+    def acquisition_complete(self):
+        return self._nSamples - len(self._data) == 0
