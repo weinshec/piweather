@@ -20,7 +20,7 @@ info = {
     "url":                 "https://github.com/weinshec/piweather",
     "packages":            ["piweather"],
     "provides":            ["piweather"],
-    "description":         "Automatic weather station based on python and a Raspberry Pi",
+    "description":         "Automatic weather station based on a Raspberry Pi",
     "long_description":    long_description,
     "keywords":            ["raspberrypi", "python", "aws", "weather"],
     "install_requires":    requirements,
