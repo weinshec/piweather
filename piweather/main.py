@@ -2,11 +2,9 @@
 # encoding: utf-8
 
 import argparse
+import importlib.util
 import logging
 import piweather
-
-from piweather.sensors import Dummy
-from piweather.measurements import Single
 
 
 def run_dash():
@@ -24,6 +22,19 @@ def run_loop():
             break
 
 
+def initialize():
+    logging.info("Starting scheduler...")
+    piweather.scheduler.start()
+
+    # TODO: config.py path should specifyable
+    logging.info("Initializing sensors and measurments")
+    spec = importlib.util.spec_from_file_location(
+        "config", "/home/weinshec/workspace/piweather/config.py")
+    piweather.config = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(piweather.config)
+    logging.info("Initialation complete")
+
+
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(
@@ -38,17 +49,7 @@ if __name__ == '__main__':
     logging.basicConfig(format="{asctime}|{levelname:7s}|> {message}",
                         style="{", datefmt="%d/%m/%Y %H:%M:%S", level=logLevel)
 
-    logging.info("Starting scheduler...")
-    piweather.scheduler.start()
-
-    # TODO: Make this dynamic later
-    logging.info("Initializing sensors...")
-    piweather.sensor_list["dummy0"] = Dummy()
-    logging.info("Initializing sensors complete")
-    logging.info("Initializing measurements...")
-    piweather.measurement_list["dummy0_single"] = Single(
-        piweather.sensor_list["dummy0"], frequency=5, table="dummy0_single")
-    logging.info("Initializing measurements complete")
+    initialize()
 
     if args.dash:
         run_dash()
