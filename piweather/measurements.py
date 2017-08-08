@@ -76,9 +76,9 @@ class Single(Measurement):
 
 class Statistical(Measurement):
 
-    def __init__(self, sensor, nSamples, *args, **kwargs):
+    def __init__(self, sensor, n, *args, **kwargs):
         super(Statistical, self).__init__(sensor, *args, **kwargs)
-        self._nSamples = nSamples
+        self._n = n
         self._data = list()
 
     def acquire(self):
@@ -97,4 +97,4 @@ class Statistical(Measurement):
         self._data = list()
 
     def acquisition_complete(self):
-        return self._nSamples - len(self._data) == 0
+        return self._n - len(self._data) == 0

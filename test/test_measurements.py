@@ -72,7 +72,7 @@ class TestStatisticalMeasurement(TransientDBTestCase):
 
     def test_statistical_measurement_polls_sensor_multiple_times(self):
         stat = measurements.Statistical(
-            sensors.Dummy(), nSamples=2, table="stat_table")
+            sensors.Dummy(), n=2, table="stat_table")
         stat.acquire()
         stat.acquire()
         stat.acquire()
