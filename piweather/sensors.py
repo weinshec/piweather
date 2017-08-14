@@ -25,7 +25,5 @@ class Sensor(object):
 
 class Dummy(Sensor):
 
-    name = "Dummy"
-
     def read(self):
         return random.random()

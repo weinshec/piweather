@@ -43,6 +43,10 @@ class Measurement(object):
     def table(self):
         return getattr(self, "_table", None)
 
+    @property
+    def sensor(self):
+        return self._sensor
+
     def acquire(self):
         raise NotImplementedError("Override this method!")
 
@@ -71,7 +75,7 @@ class Measurement(object):
 class Single(Measurement):
 
     def acquire(self):
-        self._store(value=self._sensor.value)
+        self._store(value=self.sensor.value)
 
 
 class Statistical(Measurement):
@@ -82,7 +86,7 @@ class Statistical(Measurement):
         self._data = list()
 
     def acquire(self):
-        self._data.append(self._sensor.value)
+        self._data.append(self.sensor.value)
 
         if not self.acquisition_complete():
             return
