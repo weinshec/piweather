@@ -3,12 +3,15 @@ import numpy as np
 import pandas as pd
 import piweather
 
+# TODO: Rename measurment subclasses
+
 
 class Measurement(object):
 
-    def __init__(self, sensor, table=None, frequency=0):
+    def __init__(self, sensor, table=None, frequency=0, label=None):
         self._sensor = sensor
         self._table = table
+        self._label = label
         self.frequency = frequency
 
     @property
@@ -46,6 +49,10 @@ class Measurement(object):
     @property
     def sensor(self):
         return self._sensor
+
+    @property
+    def label(self):
+        return getattr(self, "_label", "")
 
     def acquire(self):
         raise NotImplementedError("Override this method!")

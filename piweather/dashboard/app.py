@@ -1,44 +1,35 @@
 import dash
-import dash_core_components as dcc
 import dash_html_components as html
 import pandas as pd
 import piweather as pw
-import plotly.graph_objs as go
+import piweather.dashboard.panels as panels
+
+
+def create_panel(measurement, since):
+    if isinstance(measurement, pw.measurements.Single):
+        return html.Div(panels.Single(measurement, since))
+    elif isinstance(measurement, pw.measurements.Statistical):
+        return html.Div(panels.Statistical(measurement, since))
 
 
 def serve_layout():
-    # TODO: Make timedelta a global setting
+
+    # TODO: Make timestamp selectable in config
     ts = pd.Timestamp.now() - pd.Timedelta(days=1)
-    data = pw.measurement_list["dummy0_single"].data(since=ts)
+
+    panels = list()
+    for measurement in pw.config.measurements:
+        panels.append(create_panel(measurement, since=ts))
 
     return html.Div([
-        html.H1("piweather|AWS"),
-        dcc.Graph(
-            id="dummy0_single",
-            figure={
-                "data": [
-                    go.Scatter(
-                        x=data["time"],
-                        y=data["value"],
-                        mode='markers',
-                        opacity=0.7,
-                        marker={
-                            'size': 15,
-                            'line': {'width': 0.5, 'color': 'white'}
-                        },
-                    )
-                ],
-                "layout": go.Layout(
-                    xaxis={'title': 'timestamp'},
-                    yaxis={'title': 'value'},
-                    margin={'l': 40, 'b': 40, 't': 10, 'r': 10},
-                    legend={'x': 0, 'y': 1},
-                    hovermode='closest'
-                )
-            }
-        )
-    ])
+        html.H1("piweather|AWS",
+                style={'textAlign': 'center'}),
+        *panels
+    ], className="container")
 
 
 app = dash.Dash()
+app.css.append_css({
+    "external_url": "https://codepen.io/chriddyp/pen/bWLwgP.css"
+})
 app.layout = serve_layout

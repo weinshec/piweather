@@ -6,16 +6,17 @@ sensors = {
     "dummy1": Dummy(),
 }
 
-measurements = {
-    "dummy0_single": Single(
+measurements = [
+    Single(
         sensors["dummy0"],
         frequency=5,
         table="dummy0_single",
+        label="dummy measurement",
     ),
-    "dummy1_statistical": Statistical(
+    Statistical(
         sensors["dummy1"],
         frequency=1,
         n=10,
-        table="dummy1_statistical"
+        table="dummy1_statistical",
     ),
-}
+]
