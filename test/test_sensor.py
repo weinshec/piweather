@@ -1,7 +1,10 @@
+import numpy as np
+import os
 import time
 import unittest
 
 from piweather import sensors
+from tempfile import NamedTemporaryFile
 
 
 class TestSensor(unittest.TestCase):
@@ -22,3 +25,46 @@ class TestSensor(unittest.TestCase):
         self.assertEqual(val, s.value)
         time.sleep(0.2)
         self.assertNotEquals(val, s.value)
+
+
+class TestDS18x20(unittest.TestCase):
+
+    valid = (b"2d 00 4b 46 ff ff 03 10 dd : crc=dd YES\n"
+             b"2d 00 4b 46 ff ff 03 10 dd t=22562")
+
+    invalid = (b"2d 00 4b 46 ff ff 03 10 dd : crc=fa NO\n"
+               b"2d 00 4b 46 ff ff 03 10 dd t=22562")
+
+    t85000 = (b"2d 00 4b 46 ff ff 03 10 dd : crc=dd YES\n"
+              b"2d 00 4b 46 ff ff 03 10 dd t=85000")
+
+    def test_correctly_parses_temperature_from_file(self):
+        try:
+            with NamedTemporaryFile(delete=False) as valid_file:
+                valid_file.write(self.valid)
+            s = sensors.DS18x20(valid_file.name)
+            self.assertEquals(s.value, 22.562)
+        finally:
+            os.remove(valid_file.name)
+
+    def test_returns_NaN_if_crc_is_invalid(self):
+        try:
+            with NamedTemporaryFile(delete=False) as invalid_crc:
+                invalid_crc.write(self.invalid)
+            s = sensors.DS18x20(invalid_crc.name)
+            np.testing.assert_equal(s.value, np.NaN)
+        finally:
+            os.remove(invalid_crc.name)
+
+    def test_returns_NaN_if_T85000(self):
+        try:
+            with NamedTemporaryFile(delete=False) as t85000:
+                t85000.write(self.t85000)
+            s = sensors.DS18x20(t85000.name)
+            np.testing.assert_equal(s.value, np.NaN)
+        finally:
+            os.remove(t85000.name)
+
+    def test_returns_NaN_file_is_not_readable(self):
+        s = sensors.DS18x20("/tmp/nonexisting.file")
+        np.testing.assert_equal(s.value, np.NaN)
