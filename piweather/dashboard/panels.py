@@ -21,7 +21,7 @@ class Single(dcc.Graph):
     def __init__(self, measurement, since):
         data = measurement.data(since=since)
         super(Single, self).__init__(
-            id=f"graph_{measurement.table}",
+            id="graph_{}".format(measurement.table),
             figure={
                 "data": [
                     go.Scatter(x=data["time"], y=data["value"])
@@ -38,7 +38,7 @@ class Statistical(dcc.Graph):
     def __init__(self, measurement, since=None):
         data = measurement.data(since=since)
         super(Statistical, self).__init__(
-            id=f"graph_{measurement.table}",
+            id="graph_{}".format(measurement.table),
             figure={
                 "data": [
                     go.Scatter(x=data["time"], y=data["mean"],

@@ -43,11 +43,11 @@ class DS18x20(Sensor):
 
     def read(self):
         try:
-            logging.debug(f"DS18x20: opening path: {self.path}")
+            logging.debug("DS18x20: opening path: {}".format(self.path))
             with open(self.path, "r") as f:
                 lines = f.readlines()
         except FileNotFoundError:
-            logging.error(f"DS18x20: File not found at {self.path}")
+            logging.error("DS18x20: File not found at {}".format(self.path))
             return np.NaN
 
         if self._crc_is_invalid(lines):
