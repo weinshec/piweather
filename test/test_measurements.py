@@ -35,7 +35,7 @@ class TestMeasurements(TransientDBTestCase):
     def test_measurement_job_calls_sensors_value(self, mock_value):
         measurements.Single(sensors.Dummy(), frequency=0.1)
         time.sleep(0.2)
-        mock_value.assert_called()
+        self.assertTrue(mock_value.called)
 
     def test_measurement_creates_db_table_on_first_query(self):
         s = measurements.Single(sensors.Dummy(), table="dummy_table")
