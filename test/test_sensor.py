@@ -68,3 +68,24 @@ class TestDS18x20(unittest.TestCase):
     def test_returns_NaN_file_is_not_readable(self):
         s = sensors.DS18x20("/tmp/nonexisting.file")
         np.testing.assert_equal(s.value, np.NaN)
+
+
+class TestA100R(unittest.TestCase):
+
+    def test_has_pin_attribute(self):
+        s = sensors.A100R(pin=18)
+        self.assertEqual(s.pin, 18)
+
+    def test_gpio_callback_increases_counts(self):
+        s = sensors.A100R(pin=18)
+        self.assertEqual(s.counts, 0)
+        s.counter_callback()
+        s.counter_callback()
+        self.assertEqual(s.counts, 2)
+
+    def test_retrieving_value_resets_counter(self):
+        s = sensors.A100R(pin=18)
+        self.assertEqual(s.value, 0)
+        s.counter_callback()
+        self.assertGreater(s.value, 0)
+        self.assertEqual(s.value, 0)

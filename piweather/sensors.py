@@ -2,6 +2,10 @@ import logging
 import numpy as np
 import random
 import time
+try:
+    import RPi.GPIO as GPIO
+except ImportError:
+    logging.warning("Module RPi.gpio not found, maybe you're not on as Raspi")
 
 
 class Sensor(object):
@@ -67,3 +71,37 @@ class DS18x20(Sensor):
 
     def _crc_is_invalid(self, lines):
         return "YES" not in lines[0]
+
+
+class A100R(Sensor):
+
+    def __init__(self, pin, *args, **kwargs):
+        super(A100R, self).__init__(*args, **kwargs)
+        self._pin = pin
+        self._counts = 0
+        self._init_gpio()
+
+    @property
+    def counts(self):
+        return self._counts
+
+    @property
+    def pin(self):
+        return self._pin
+
+    def read(self):
+        cts = self.counts
+        self._counts = 0
+        return cts
+
+    def counter_callback(self):
+        self._counts += 1
+
+    def _init_gpio(self):
+        try:
+            GPIO.setup(self.pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+            GPIO.add_event_detect(
+                self.pin, GPIO.FALLING, callback=self.counter_callback)
+        except NameError:
+            logging.warning(
+                "Module RPi.gpio not found, maybe you're not on as Raspi")
