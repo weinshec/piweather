@@ -17,14 +17,14 @@ class TestSensor(unittest.TestCase):
     def test_Sensor_has_value_property(self):
         s = sensors.Dummy()
         self.assertIsNotNone(s.value)
-        self.assertNotEquals(s.value, 0)
+        self.assertNotEqual(s.value, 0)
 
     def test_Sensor_can_cache_time_for_value(self):
         s = sensors.Dummy(cache=0.1)
         val = s.value
         self.assertEqual(val, s.value)
         time.sleep(0.2)
-        self.assertNotEquals(val, s.value)
+        self.assertNotEqual(val, s.value)
 
 
 class TestDS18x20(unittest.TestCase):
@@ -43,7 +43,7 @@ class TestDS18x20(unittest.TestCase):
             with NamedTemporaryFile(delete=False) as valid_file:
                 valid_file.write(self.valid)
             s = sensors.DS18x20(valid_file.name)
-            self.assertEquals(s.value, 22.562)
+            self.assertEqual(s.value, 22.562)
         finally:
             os.remove(valid_file.name)
 

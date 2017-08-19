@@ -11,13 +11,13 @@ from test import TransientDBTestCase
 class TestMeasurements(TransientDBTestCase):
 
     def assertNumberOfJobs(self, n):
-        self.assertEquals(len(piweather.scheduler.get_jobs()), n)
+        self.assertEqual(len(piweather.scheduler.get_jobs()), n)
 
     def test_measurement_specifying_frequency_adds_job_to_scheduler(self):
         self.assertNumberOfJobs(0)
         single = measurements.Single(sensors.Dummy(), frequency=60)
         self.assertNumberOfJobs(1)
-        self.assertEquals(single.frequency, 60)
+        self.assertEqual(single.frequency, 60)
 
     def test_measurement_changing_frequency_does_not_add_another_job(self):
         single = measurements.Single(sensors.Dummy(), frequency=60)
@@ -48,7 +48,7 @@ class TestMeasurements(TransientDBTestCase):
         s.acquire()
         with piweather.db.connect() as conn, conn.begin():
             data = pd.read_sql_table("dummy_table", conn)
-        self.assertEquals(len(data), 2)
+        self.assertEqual(len(data), 2)
 
     def test_measurment_has_last_acquisition_stored(self):
         s = measurements.Single(sensors.Dummy())
@@ -64,8 +64,8 @@ class TestMeasurements(TransientDBTestCase):
         time.sleep(0.1)
         s.acquire()
 
-        self.assertEquals(len(s.data()), 2)
-        self.assertEquals(len(s.data(since=ts)), 1)
+        self.assertEqual(len(s.data()), 2)
+        self.assertEqual(len(s.data(since=ts)), 1)
 
 
 class TestStatisticalMeasurement(TransientDBTestCase):
