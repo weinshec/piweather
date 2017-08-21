@@ -2,7 +2,7 @@ import piweather
 import unittest
 from unittest.mock import patch
 
-from piweather.main import load_config, run_loop, run_dash
+from piweather.main import load_config, run_loop
 
 
 class TestMainModule(unittest.TestCase):

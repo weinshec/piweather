@@ -1,6 +1,8 @@
 from piweather.measurements import Single, Statistical
 from piweather.sensors import Dummy
 
+TITLE = "piweather|AWS"
+
 SENSORS = {
     "dummy0": Dummy(),
     "dummy1": Dummy(),
@@ -20,3 +22,6 @@ MEASUREMENTS = [
         table="dummy1_statistical",
     ),
 ]
+
+HOSTS = "0.0.0.0"
+PORT = 8050

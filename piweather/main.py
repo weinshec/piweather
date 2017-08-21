@@ -9,10 +9,7 @@ import piweather
 import sys
 import time
 
-
-def run_dash():
-    from piweather.dashboard.app import app
-    app.run_server(host="0.0.0.0", use_reloader=False)
+from piweather.dashboard import create_app
 
 
 def run_loop():
@@ -65,7 +62,11 @@ if __name__ == '__main__':
 
     piweather.scheduler.start()
     if args.dash:
-        run_dash()
+        piweather.app = create_app()
+        piweather.app.run_server(
+            host=piweather.config.HOSTS,
+            port=piweather.config.PORT,
+            use_reloader=False)
     else:
         run_loop()
     piweather.scheduler.shutdown(wait=True)

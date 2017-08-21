@@ -2,6 +2,7 @@ import logging
 import numpy as np
 import pandas as pd
 import piweather
+import sqlalchemy as sa
 
 # TODO: Rename measurment subclasses
 
@@ -65,7 +66,12 @@ class Measurement(object):
         sql_query = "SELECT * FROM {}".format(self.table)
         if since is not None:
             sql_query += " WHERE time >= '{}'".format(since)
-        return pd.read_sql_query(sql_query, piweather.db)
+
+        try:
+            return pd.read_sql_query(sql_query, piweather.db)
+        except sa.exc.OperationalError:
+            logging.warning("Table not found '{}'".format(self.table))
+            return None
 
     def _store(self, **kwargs):
         kwargs["time"] = pd.Timestamp.now()
