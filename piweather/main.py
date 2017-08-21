@@ -39,6 +39,7 @@ if __name__ == '__main__':
         sys.exit(1)
 
     piweather.scheduler.start()
+
     if args.dash:
         piweather.app = create_app()
         piweather.app.run_server(
@@ -52,4 +53,5 @@ if __name__ == '__main__':
                 time.sleep(1)
             except KeyboardInterrupt:
                 break
+
     piweather.scheduler.shutdown(wait=True)

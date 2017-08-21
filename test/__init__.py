@@ -11,5 +11,6 @@ class TransientDBTestCase(unittest.TestCase):
             piweather.scheduler.start()
 
     def tearDown(self):
+        piweather.db = None
         for job in piweather.scheduler.get_jobs():
             job.remove()

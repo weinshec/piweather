@@ -72,6 +72,8 @@ class Measurement(object):
                 stm.append_whereclause(table.c.time > since)
             rs = con.execute(stm)
 
+            # TODO: capture when data is empty
+
             matrix = np.array(rs.fetchall())
             data = {
                 col: matrix[:, i]
