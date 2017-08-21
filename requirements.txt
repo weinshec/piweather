@@ -1,6 +1,5 @@
 apscheduler>=3.0
 sqlalchemy>=1.1
-pandas>=0.20
 dash>=0.17.7
 dash-renderer>=0.7.4
 dash-html-components>=0.7.0

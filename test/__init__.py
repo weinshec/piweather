@@ -1,12 +1,12 @@
 import piweather
 import unittest
-from sqlalchemy import create_engine
+from piweather.database import get_engine
 
 
 class TransientDBTestCase(unittest.TestCase):
 
     def setUp(self):
-        piweather.db = create_engine('sqlite:///:memory:')
+        piweather.db = get_engine('sqlite:///:memory:')
         if not piweather.scheduler.running:
             piweather.scheduler.start()
 

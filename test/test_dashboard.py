@@ -1,12 +1,17 @@
-import unittest
 import piweather
 import piweather.dashboard
+from piweather.helper import load_external
+
+from test import TransientDBTestCase
 
 
-class TestDashApp(unittest.TestCase):
+class TestDashApp(TransientDBTestCase):
 
     def setUp(self):
-        piweather.main.load_config("test/static/config.py")
+        piweather.config = load_external("test/static/config.py")
+
+        super(TestDashApp, self).setUp()
+
         piweather.app = piweather.dashboard.create_app()
         piweather.app.server.testing = True
         self.client = piweather.app.server.test_client()

@@ -2,38 +2,13 @@
 # encoding: utf-8
 
 import argparse
-import importlib
 import logging
-import os
 import piweather
 import sys
 import time
 
 from piweather.dashboard import create_app
-
-
-def run_loop():
-    logging.info("Press 'CTRL+C' to quit!")
-    while True:
-        try:
-            time.sleep(1)
-        except KeyboardInterrupt:
-            break
-
-
-def load_config(path):
-    if not os.path.isfile(path):
-        raise FileNotFoundError
-
-    logging.info("Loading config from {}".format(path))
-
-    if sys.version_info[0] >= 3 and sys.version_info[1] >= 6:
-        spec = importlib.util.spec_from_file_location("config", path)
-        piweather.config = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(piweather.config)
-    else:
-        piweather.config = importlib.machinery.SourceFileLoader(
-            "config", path).load_module()
+from piweather.helper import load_external
 
 
 if __name__ == '__main__':
@@ -55,7 +30,10 @@ if __name__ == '__main__':
         logging.getLogger('apscheduler.executors.default').propagate = False
 
     try:
-        load_config(args.config)
+        piweather.config = load_external(args.config)
+        sensors = load_external(piweather.config.SENSORS)
+        piweather.config.SENSORS = sensors.SENSORS
+        piweather.config.MEASUREMENTS = sensors.MEASUREMENTS
     except FileNotFoundError:
         logging.error("Config file not found at {}".format(args.config))
         sys.exit(1)
@@ -68,5 +46,10 @@ if __name__ == '__main__':
             port=piweather.config.PORT,
             use_reloader=False)
     else:
-        run_loop()
+        logging.info("Press 'CTRL+C' to quit!")
+        while True:
+            try:
+                time.sleep(1)
+            except KeyboardInterrupt:
+                break
     piweather.scheduler.shutdown(wait=True)
