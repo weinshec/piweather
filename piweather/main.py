@@ -9,7 +9,7 @@ import piweather
 
 def run_dash():
     from piweather.dashboard.app import app
-    app.run_server(debug=True, use_reloader=False)
+    app.run_server(debug=True, use_reloader=False, host="0.0.0.0")
 
 
 def run_loop():
