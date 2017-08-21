@@ -78,14 +78,13 @@ class TestA100R(unittest.TestCase):
 
     def test_gpio_callback_increases_counts(self):
         s = sensors.A100R(pin=18)
-        self.assertEqual(s.counts, 0)
-        s.counter_callback()
-        s.counter_callback()
-        self.assertEqual(s.counts, 2)
+        self.assertEqual(s.read(), 0)
+        s.counter_callback("channel")
+        self.assertGreater(s.read(), 0)
 
     def test_retrieving_value_resets_counter(self):
         s = sensors.A100R(pin=18)
-        self.assertEqual(s.value, 0)
-        s.counter_callback()
-        self.assertGreater(s.value, 0)
-        self.assertEqual(s.value, 0)
+        self.assertEqual(s.read(), 0)
+        s.counter_callback("channel")
+        self.assertGreater(s.read(), 0)
+        self.assertEqual(s.read(), 0)
