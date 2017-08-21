@@ -72,6 +72,12 @@ class TestMeasurements(TransientDBTestCase):
         self.assertEqual(len(s.data()["value"]), 2)
         self.assertEqual(len(s.data(since=ts)["value"]), 1)
 
+    def test_data_returns_dict_even_if_table_is_empty(self):
+        s = measurements.Single(sensors.Dummy(), table="empty_table")
+        data = s.data()
+        self.assertIn("time", data)
+        self.assertListEqual(data["time"], [])
+
 
 class TestStatisticalMeasurement(TransientDBTestCase):
 

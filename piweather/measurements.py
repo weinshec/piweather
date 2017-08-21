@@ -72,15 +72,11 @@ class Measurement(object):
                 stm.append_whereclause(table.c.time > since)
             rs = con.execute(stm)
 
-            # TODO: capture when data is empty
-
             matrix = np.array(rs.fetchall())
-            data = {
-                col: matrix[:, i]
-                for i, col in enumerate(rs.keys())
-            }
-
-            return data
+            if matrix.shape == (0,):
+                return {col: [] for col in rs.keys()}
+            else:
+                return {col: matrix[:, i] for i, col in enumerate(rs.keys())}
 
     def _store(self, **kwargs):
         self._last = dict(**kwargs)
