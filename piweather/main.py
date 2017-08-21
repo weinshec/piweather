@@ -2,7 +2,7 @@
 # encoding: utf-8
 
 import argparse
-import importlib.util
+import importlib
 import logging
 import os
 import piweather
@@ -29,9 +29,14 @@ def load_config(path):
         raise FileNotFoundError
 
     logging.info("Loading config from {}".format(path))
-    spec = importlib.util.spec_from_file_location("config", path)
-    piweather.config = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(piweather.config)
+
+    if sys.version_info[0] >= 3 and sys.version_info[1] >= 6:
+        spec = importlib.util.spec_from_file_location("config", path)
+        piweather.config = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(piweather.config)
+    else:
+        piweather.config = importlib.machinery.SourceFileLoader(
+            "config", path).load_module()
 
 
 if __name__ == '__main__':

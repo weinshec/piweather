@@ -27,6 +27,7 @@ def serve_layout():
         *panels
     ], className="container")
 
+
 app = dash.Dash()
 app.css.append_css({
     "external_url": "https://codepen.io/chriddyp/pen/bWLwgP.css"
