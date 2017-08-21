@@ -1,19 +1,24 @@
 import logging
 import numpy as np
-import pandas as pd
 import piweather
-import sqlalchemy as sa
+from datetime import datetime
+from piweather.database import get_engine
+from sqlalchemy import MetaData, Table, Column, Float, DateTime, sql
 
 # TODO: Rename measurment subclasses
 
 
 class Measurement(object):
 
-    def __init__(self, sensor, table=None, frequency=0, label=None):
+    columns = dict()
+
+    def __init__(self, sensor, table, frequency=0, label=None):
         self._sensor = sensor
         self._table = table
-        self._label = label
         self.frequency = frequency
+        self._label = label
+
+        self._init_db_table()
 
     @property
     def frequency(self):
@@ -45,7 +50,7 @@ class Measurement(object):
 
     @property
     def table(self):
-        return getattr(self, "_table", None)
+        return self._table
 
     @property
     def sensor(self):
@@ -59,39 +64,55 @@ class Measurement(object):
         raise NotImplementedError("Override this method!")
 
     def data(self, since=None):
-        if self.table is None:
-            logging.warning("No table specified for this measurement!")
-            return None
+        with get_engine().connect() as con:
+            table = Table(self.table, MetaData(get_engine()), autoload=True)
 
-        sql_query = "SELECT * FROM {}".format(self.table)
-        if since is not None:
-            sql_query += " WHERE time >= '{}'".format(since)
+            stm = sql.select([table])
+            if since is not None:
+                stm.append_whereclause(table.c.time > since)
+            rs = con.execute(stm)
 
-        try:
-            return pd.read_sql_query(sql_query, piweather.db)
-        except sa.exc.OperationalError:
-            logging.warning("Table not found '{}'".format(self.table))
-            return None
+            matrix = np.array(rs.fetchall())
+            if matrix.shape == (0,):
+                return {col: [] for col in rs.keys()}
+            else:
+                return {col: matrix[:, i] for i, col in enumerate(rs.keys())}
 
     def _store(self, **kwargs):
-        kwargs["time"] = pd.Timestamp.now()
-        df = pd.DataFrame(
-            {key: pd.Series([val], index=[0]) for key, val in kwargs.items()})
-        self._last = df
-        if self.table is not None:
-            df.to_sql(self.table,
-                      piweather.db,
-                      if_exists='append',
-                      index=False)
+        self._last = dict(**kwargs)
+        with get_engine().connect() as con:
+            table = Table(self.table, MetaData(get_engine()), autoload=True)
+            insert = table.insert().values(**kwargs)
+            con.execute(insert)
+
+    def _init_db_table(self):
+        logging.debug("create table '{}' if not exists".format(self.table))
+        with get_engine().connect():
+            cols = [Column(name, type_) for name, type_ in self.columns.items()]
+            table = Table(self.table, MetaData(get_engine()), *cols)
+            table.create(checkfirst=True)
 
 
 class Single(Measurement):
 
+    columns = {
+        "time": DateTime,
+        "value": Float,
+    }
+
     def acquire(self):
-        self._store(value=self.sensor.value)
+        self._store(time=datetime.now(), value=self.sensor.value)
 
 
 class Statistical(Measurement):
+
+    columns = {
+        "time": DateTime,
+        "mean": Float,
+        "std": Float,
+        "min": Float,
+        "max": Float,
+     }
 
     def __init__(self, sensor, n, *args, **kwargs):
         super(Statistical, self).__init__(sensor, *args, **kwargs)
@@ -105,6 +126,7 @@ class Statistical(Measurement):
             return
 
         self._store(
+            time=datetime.now(),
             mean=np.mean(self._data),
             std=np.std(self._data),
             min=np.min(self._data),

@@ -1,4 +1,4 @@
-import pandas as pd
+import datetime
 import time
 from unittest.mock import patch, PropertyMock
 
@@ -15,57 +15,68 @@ class TestMeasurements(TransientDBTestCase):
 
     def test_measurement_specifying_frequency_adds_job_to_scheduler(self):
         self.assertNumberOfJobs(0)
-        single = measurements.Single(sensors.Dummy(), frequency=60)
+        single = measurements.Single(
+            sensors.Dummy(), table="dummy", frequency=60)
         self.assertNumberOfJobs(1)
         self.assertEqual(single.frequency, 60)
 
     def test_measurement_changing_frequency_does_not_add_another_job(self):
-        single = measurements.Single(sensors.Dummy(), frequency=60)
+        single = measurements.Single(
+            sensors.Dummy(), table="dummy", frequency=60)
         self.assertNumberOfJobs(1)
         single.frequency = 120
         self.assertNumberOfJobs(1)
 
     def test_measurement_with_0_frequency_does_not_have_a_job(self):
-        single = measurements.Single(sensors.Dummy(), frequency=60)
+        single = measurements.Single(
+            sensors.Dummy(), table="dummy", frequency=60)
         self.assertNumberOfJobs(1)
         single.frequency = 0
         self.assertNumberOfJobs(0)
 
     @patch("piweather.sensors.Dummy.value", new_callable=PropertyMock)
     def test_measurement_job_calls_sensors_value(self, mock_value):
-        measurements.Single(sensors.Dummy(), frequency=0.1)
+        measurements.Single(sensors.Dummy(), table="dummy", frequency=0.1)
         time.sleep(0.2)
         self.assertTrue(mock_value.called)
 
-    def test_measurement_creates_db_table_on_first_query(self):
-        s = measurements.Single(sensors.Dummy(), table="dummy_table")
-        s.acquire()
+    def test_measurement_creates_db_table_on_initialization(self):
+        measurements.Single(sensors.Dummy(), table="dummy_table")
         self.assertTrue(piweather.db.has_table("dummy_table"))
 
-    def test_measurement_fills_database_row(self):
+    def test_measurement_not_raises_if_table_exists(self):
+        measurements.Single(sensors.Dummy(), table="dummy_table")
+        measurements.Single(sensors.Dummy(), table="dummy_table")
+
+    def test_measurment_has_last_acquisition_stored(self):
+        s = measurements.Single(sensors.Dummy(), table="dummy_table")
+        self.assertIsNone(s.last)
+        s.acquire()
+        self.assertIn("time", s.last)
+        self.assertIn("value", s.last)
+
+    def test_measurement_fills_database_rows(self):
         s = measurements.Single(sensors.Dummy(), table="dummy_table")
         s.acquire()
         s.acquire()
-        with piweather.db.connect() as conn, conn.begin():
-            data = pd.read_sql_table("dummy_table", conn)
-        self.assertEqual(len(data), 2)
-
-    def test_measurment_has_last_acquisition_stored(self):
-        s = measurements.Single(sensors.Dummy())
-        self.assertIsNone(s.last)
-        s.acquire()
-        self.assertIsInstance(s.last, pd.DataFrame)
+        self.assertEqual(len(s.data()["value"]), 2)
 
     def test_can_query_measurements_from_db(self):
         s = measurements.Single(sensors.Dummy(), table="query_table")
         s.acquire()
         time.sleep(0.1)
-        ts = pd.Timestamp.now()
+        ts = datetime.datetime.now()
         time.sleep(0.1)
         s.acquire()
 
-        self.assertEqual(len(s.data()), 2)
-        self.assertEqual(len(s.data(since=ts)), 1)
+        self.assertEqual(len(s.data()["value"]), 2)
+        self.assertEqual(len(s.data(since=ts)["value"]), 1)
+
+    def test_data_returns_dict_even_if_table_is_empty(self):
+        s = measurements.Single(sensors.Dummy(), table="empty_table")
+        data = s.data()
+        self.assertIn("time", data)
+        self.assertListEqual(data["time"], [])
 
 
 class TestStatisticalMeasurement(TransientDBTestCase):
@@ -76,6 +87,5 @@ class TestStatisticalMeasurement(TransientDBTestCase):
         stat.acquire()
         stat.acquire()
         stat.acquire()
-        with piweather.db.connect() as conn, conn.begin():
-            data = pd.read_sql_table("stat_table", conn)
-        self.assertEqual(len(data), 1)
+        data = stat.data()
+        self.assertEqual(len(data["time"]), 1)

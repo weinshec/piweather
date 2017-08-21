@@ -1,9 +1,10 @@
 import dash
 import dash_html_components as html
 import dash_core_components as dcc
-import pandas as pd
 import plotly.graph_objs as go
 import piweather
+
+from datetime import datetime, timedelta
 
 
 def create_app():
@@ -16,8 +17,8 @@ def create_app():
 
 
 def serve_layout():
-    # TODO: Make timestamp selectable in config
-    ts = pd.Timestamp.now() - pd.Timedelta(days=1)
+    # TODO: Make this configurable
+    ts = datetime.now() - timedelta(days=1)
 
     panel_map = {
         piweather.measurements.Single: SinglePanel,
@@ -27,7 +28,8 @@ def serve_layout():
     layout = list()
     layout.append(
         html.H1(piweather.config.TITLE, style={'textAlign': 'center'}))
-    for measurement in piweather.config.MEASUREMENTS:
+    measurements = getattr(piweather.config, "MEASUREMENTS", [])
+    for measurement in measurements:
         layout.append(panel_map[type(measurement)](measurement, since=ts))
 
     return html.Div(layout, className="container")

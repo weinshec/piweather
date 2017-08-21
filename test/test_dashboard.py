@@ -1,15 +1,19 @@
 import unittest
 import piweather
 import piweather.dashboard
+from piweather.helper import load_external
 
 
 class TestDashApp(unittest.TestCase):
 
     def setUp(self):
-        piweather.main.load_config("test/static/config.py")
+        piweather.config = load_external("test/static/config.py")
         piweather.app = piweather.dashboard.create_app()
         piweather.app.server.testing = True
         self.client = piweather.app.server.test_client()
+
+    def tearDown(self):
+        piweather.config = None
 
     def test_app_return_response_code_200(self):
         response = self.client.get("/")
