@@ -4,41 +4,42 @@
 import argparse
 import importlib.util
 import logging
+import os
 import piweather
+import sys
+import time
 
 
 def run_dash():
     from piweather.dashboard.app import app
-    app.run_server(debug=True, use_reloader=False, host="0.0.0.0")
+    app.run_server(host="0.0.0.0", use_reloader=False)
 
 
 def run_loop():
-    from time import sleep
     logging.info("Press 'CTRL+C' to quit!")
     while True:
         try:
-            sleep(1)
+            time.sleep(1)
         except KeyboardInterrupt:
             break
 
 
-def initialize():
-    logging.info("Starting scheduler...")
-    piweather.scheduler.start()
+def load_config(path):
+    if not os.path.isfile(path):
+        raise FileNotFoundError
 
-    # TODO: config.py path should specifyable
-    logging.info("Initializing sensors and measurments")
-    spec = importlib.util.spec_from_file_location(
-        "config", "/home/weinshec/workspace/piweather/config.py")
+    logging.info("Loading config from {}".format(path))
+    spec = importlib.util.spec_from_file_location("config", path)
     piweather.config = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(piweather.config)
-    logging.info("Initialation complete")
 
 
 if __name__ == '__main__':
-
     parser = argparse.ArgumentParser(
         description="piweather Automatic Weather Station")
+    parser.add_argument("-c --config", metavar="PATH", dest="config",
+                        default="test/static/config.py",
+                        help="specify the config file to use")
     parser.add_argument("--dash", action="store_true",
                         help="run dashboard server")
     parser.add_argument("--debug", action="store_true",
@@ -48,13 +49,18 @@ if __name__ == '__main__':
     logLevel = logging.DEBUG if args.debug else logging.INFO
     logging.basicConfig(format="{asctime}|{levelname:7s}|> {message}",
                         style="{", datefmt="%d/%m/%Y %H:%M:%S", level=logLevel)
+    if not args.debug:
+        logging.getLogger('apscheduler.executors.default').propagate = False
 
-    initialize()
+    try:
+        load_config(args.config)
+    except FileNotFoundError:
+        logging.error("Config file not found at {}".format(args.config))
+        sys.exit(1)
 
+    piweather.scheduler.start()
     if args.dash:
         run_dash()
     else:
         run_loop()
-
-    logging.info("Stopping scheduler...")
     piweather.scheduler.shutdown(wait=True)

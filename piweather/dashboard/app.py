@@ -18,7 +18,7 @@ def serve_layout():
     ts = pd.Timestamp.now() - pd.Timedelta(days=1)
 
     panels = list()
-    for measurement in pw.config.measurements:
+    for measurement in pw.config.MEASUREMENTS:
         panels.append(create_panel(measurement, since=ts))
 
     return html.Div([
@@ -26,7 +26,6 @@ def serve_layout():
                 style={'textAlign': 'center'}),
         *panels
     ], className="container")
-
 
 app = dash.Dash()
 app.css.append_css({
