@@ -17,8 +17,8 @@ def create_app():
 
 
 def serve_layout():
-    # TODO: Make this configurable
-    ts = datetime.now() - timedelta(days=1)
+    viewport = getattr(piweather.config, "VIEWPORT", timedelta(hours=24))
+    ts = datetime.now() - viewport
 
     panel_map = {
         piweather.measurements.Single: SinglePanel,
@@ -48,6 +48,7 @@ class Panel(html.Div):
         self.measurement = measurement
         self.since = since
         self.graph_layout.update(yaxis={"title": measurement.label})
+        self.graph_layout["xaxis"].update(range=[since, datetime.now()])
         super(Panel, self).__init__(self.create_layout(), *args, **kwargs)
 
     def create_layout(self):
