@@ -14,7 +14,7 @@ from piweather.helper import load_external
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description="piweather Automatic Weather Station")
-    parser.add_argument("-c --config", metavar="PATH", dest="config",
+    parser.add_argument("-c", "--config", metavar="PATH", dest="config",
                         default="test/static/config.py",
                         help="specify the config file to use")
     parser.add_argument("--dash", action="store_true",
