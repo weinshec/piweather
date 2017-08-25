@@ -5,6 +5,7 @@ import unittest
 
 from piweather import sensors
 from tempfile import NamedTemporaryFile
+from unittest.mock import patch, MagicMock
 
 
 class TestSensor(unittest.TestCase):
@@ -88,3 +89,67 @@ class TestA100R(unittest.TestCase):
         s.counter_callback("channel")
         self.assertGreater(s.read(), 0)
         self.assertEqual(s.read(), 0)
+
+
+smbus = MagicMock()
+
+
+@patch.dict("sys.modules", smbus=smbus)
+class TestBMP280(unittest.TestCase):
+
+    def setUp(self):
+        smbus.SMBus().read_i2c_block_data = MagicMock()
+        smbus.SMBus().read_byte_data.return_value = 0x00000000
+
+    def test_has_i2c_address(self):
+        s = sensors.BMP280()
+        self.assertEqual(s.i2c_addr, sensors.BMP280.DEFAULT_I2C_ADDR)
+
+    def test_property_validity_checking(self):
+        with self.subTest("osrs_p"):
+            s = sensors.BMP280(osrs_p=sensors.BMP280.OSRS["x16"])
+            with self.assertRaises(ValueError):
+                s.osrs_p = "foobar"
+
+        with self.subTest("osrs_t"):
+            s = sensors.BMP280(osrs_t=sensors.BMP280.OSRS["x16"])
+            with self.assertRaises(ValueError):
+                s.osrs_t = "foobar"
+
+        with self.subTest("filter"):
+            s = sensors.BMP280(filtr=sensors.BMP280.FILTER["16"])
+            with self.assertRaises(ValueError):
+                s.filtr = "foobar"
+
+    def test_ctype_conversions(self):
+        s = sensors.BMP280()
+
+        with self.subTest("to short valid"):
+            self.assertEqual(s.to_short([0x11, 0x22]), 8721)
+
+        with self.subTest("to unsigned short"):
+            self.assertEqual(s.to_ushort([0x11, 0x22]), 8721)
+
+    def test_reads_calibration_values_on_init(self):
+        s = sensors.BMP280()
+        self.assertIsNotNone(s.calibration)
+        self.assertIsNotNone(s.calibration["T1"])
+
+    def test_converts_temperature_correctly(self):
+        s = sensors.BMP280()
+
+        # set example calibration from datasheet
+        datasheet_calib_example = dict(
+            T1=27504, T2=26435, T3=-1000,
+            P1=36477, P2=-10685, P3=3024, P4=2855, P5=140, P6=-7, P7=15500,
+            P8=-14600, P9=6000,
+        )
+        s.calibration = datasheet_calib_example
+
+        # mock register content readout
+        datasheet_data_example = [0x65, 0x5a, 0xc0, 0x7e, 0xed, 0x00]
+        smbus.SMBus().read_i2c_block_data.return_value = datasheet_data_example
+
+        T, p = s.value
+        self.assertAlmostEqual(T, 25.08, delta=0.01)
+        self.assertAlmostEqual(p, 100653.27, delta=0.01)
