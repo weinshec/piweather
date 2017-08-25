@@ -133,7 +133,7 @@ class BMP280(Sensor):
         T = self._compensated_temperature(raw_T)
         p = self._compensated_pressure(raw_p, T)
 
-        return T, p
+        return p
 
     def _get_calibration(self):
         cal_reg = self._bus.read_i2c_block_data(self.i2c_addr,
@@ -154,7 +154,6 @@ class BMP280(Sensor):
         self.calibration["P9"] = self.to_short(cal_reg[22:24])
 
     def _wait_measurement_time(self):
-        # TODO: Check Appendix B for parametric form
         if self.osrs_p == BMP280.OSRS["x1"]:
             time.sleep(0.007)
         elif self.osrs_p == BMP280.OSRS["x2"]:

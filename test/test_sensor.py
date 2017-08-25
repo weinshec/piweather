@@ -150,6 +150,4 @@ class TestBMP280(unittest.TestCase):
         datasheet_data_example = [0x65, 0x5a, 0xc0, 0x7e, 0xed, 0x00]
         smbus.SMBus().read_i2c_block_data.return_value = datasheet_data_example
 
-        T, p = s.value
-        self.assertAlmostEqual(T, 25.08, delta=0.01)
-        self.assertAlmostEqual(p, 100653.27, delta=0.01)
+        self.assertAlmostEqual(s.value, 100653.27, delta=0.01)
