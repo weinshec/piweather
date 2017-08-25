@@ -98,7 +98,7 @@ class BMP280(Sensor):
             raise ValueError(
                 "Invalid filter value {:b}".format(filtr))
 
-        cfg_reg = self._bus.read_byte_data(BMP280.ADDR_CFG)
+        cfg_reg = self._bus.read_byte_data(self.i2c_addr, BMP280.ADDR_CFG)
         logging.debug("BMP280: read ADDR_CFG register: {:8b}".format(cfg_reg))
 
         INV_FILTER_MASK = BMP280.FILTER_MASK ^ 0xFF
