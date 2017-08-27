@@ -31,13 +31,13 @@ class TestSensor(unittest.TestCase):
 class TestDS18x20(unittest.TestCase):
 
     valid = (b"2d 00 4b 46 ff ff 03 10 dd : crc=dd YES\n"
-             b"2d 00 4b 46 ff ff 03 10 dd t=22562")
+             b"2d 00 4b 46 ff ff 03 10 dd t=22562\n")
 
     invalid = (b"2d 00 4b 46 ff ff 03 10 dd : crc=fa NO\n"
-               b"2d 00 4b 46 ff ff 03 10 dd t=22562")
+               b"2d 00 4b 46 ff ff 03 10 dd t=22562\n")
 
     t85000 = (b"2d 00 4b 46 ff ff 03 10 dd : crc=dd YES\n"
-              b"2d 00 4b 46 ff ff 03 10 dd t=85000")
+              b"2d 00 4b 46 ff ff 03 10 dd t=85000\n")
 
     def test_correctly_parses_temperature_from_file(self):
         try:

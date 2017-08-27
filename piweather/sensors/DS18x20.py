@@ -35,7 +35,7 @@ class DS18x20(Sensor):
 
     def _extract_raw_temperature(self, lines):
         last_token = lines[1].split(" ")[-1]
-        return last_token[len("t="):]
+        return last_token[len("t="):].strip()
 
     def _crc_is_invalid(self, lines):
         return "YES" not in lines[0]
