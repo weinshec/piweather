@@ -12,6 +12,10 @@ except ImportError:
 
 class A100R(Sensor):
 
+    dtypes = {
+        "windspeed": float,
+    }
+
     def __init__(self, pin, R=60, *args, **kwargs):
         super(A100R, self).__init__(*args, **kwargs)
         self._pin = pin
@@ -25,7 +29,9 @@ class A100R(Sensor):
         return self._pin
 
     def read(self):
-        return self._calib * self.counts_per_second(reset=True)
+        return {
+            "windspeed": self._calib * self.counts_per_second(reset=True)
+        }
 
     def counts_per_second(self, reset=True):
         now = time.time()
