@@ -2,21 +2,16 @@ import logging
 import numpy as np
 import piweather
 from datetime import datetime
-from piweather.database import get_engine
+from piweather.database import get_engine, map_dtype
 from sqlalchemy import MetaData, Table, Column, Float, DateTime, sql
-
-# TODO: Rename measurment subclasses
 
 
 class Measurement(object):
 
-    columns = dict()
-
-    def __init__(self, sensor, table, frequency=0, label=None):
+    def __init__(self, sensor, table, frequency=0):
         self._sensor = sensor
         self._table = table
         self.frequency = frequency
-        self._label = label
 
         self._init_db_table()
 
@@ -48,6 +43,11 @@ class Measurement(object):
     def last(self):
         return getattr(self, "_last", None)
 
+    @last.setter
+    def last(self, values):
+        self._last = dict(time=datetime.now())
+        self._last.update(values)
+
     @property
     def table(self):
         return self._table
@@ -56,12 +56,13 @@ class Measurement(object):
     def sensor(self):
         return self._sensor
 
-    @property
-    def label(self):
-        return getattr(self, "_label", "")
-
     def acquire(self):
-        raise NotImplementedError("Override this method!")
+        self.last = self.sensor.value
+
+        with get_engine().connect() as con:
+            table = Table(self.table, MetaData(get_engine()), autoload=True)
+            insert = table.insert().values(**self.last)
+            con.execute(insert)
 
     def data(self, since=None):
         with get_engine().connect() as con:
@@ -78,30 +79,21 @@ class Measurement(object):
             else:
                 return {col: matrix[:, i] for i, col in enumerate(rs.keys())}
 
-    def _store(self, **kwargs):
-        self._last = dict(**kwargs)
-        with get_engine().connect() as con:
-            table = Table(self.table, MetaData(get_engine()), autoload=True)
-            insert = table.insert().values(**kwargs)
-            con.execute(insert)
-
     def _init_db_table(self):
         logging.debug("create table '{}' if not exists".format(self.table))
+
         with get_engine().connect():
-            cols = [Column(name, type_) for name, type_ in self.columns.items()]
-            table = Table(self.table, MetaData(get_engine()), *cols)
+            columns = [Column("time", map_dtype(datetime))]
+            for name, type_ in self.sensor.dtypes.items():
+                columns.append(Column(name, map_dtype(type_)))
+
+            table = Table(self.table, MetaData(get_engine()), *columns)
             table.create(checkfirst=True)
 
 
 class Single(Measurement):
 
-    columns = {
-        "time": DateTime,
-        "value": Float,
-    }
-
-    def acquire(self):
-        self._store(time=datetime.now(), value=self.sensor.value)
+    pass
 
 
 class Statistical(Measurement):
