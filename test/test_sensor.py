@@ -1,9 +1,11 @@
 import numpy as np
 import os
+import piweather
 import time
 import unittest
 
 from piweather import sensors
+from test import TransientDBTestCase
 from tempfile import NamedTemporaryFile
 from unittest.mock import patch, MagicMock
 
@@ -87,24 +89,71 @@ class TestDS18x20(unittest.TestCase):
         np.testing.assert_equal(s.value["temperature"], np.NaN)
 
 
-class TestA100R(unittest.TestCase):
+class TestA100R(TransientDBTestCase):
 
     def test_has_pin_attribute(self):
         s = sensors.A100R(pin=18)
         self.assertEqual(s.pin, 18)
 
+    def test_A100R_adds_scheduler_job(self):
+        pre = len(piweather.scheduler.get_jobs())
+        sensors.A100R(pin=18)
+        post = len(piweather.scheduler.get_jobs())
+
+        self.assertEqual(post, pre+1)
+
     def test_gpio_callback_increases_counts(self):
         s = sensors.A100R(pin=18)
-        self.assertEqual(s.value["windspeed"], 0)
+        self.assertEqual(s.counts_per_second(), 0)
         s.counter_callback("channel")
-        self.assertGreater(s.value["windspeed"], 0)
+        self.assertGreater(s.counts_per_second(), 0)
 
-    def test_retrieving_value_resets_counter(self):
+    @patch("piweather.sensors.A100R.counts_per_second")
+    def test_correctly_sets_min_and_max_values(self, mock_cps):
         s = sensors.A100R(pin=18)
-        self.assertEqual(s.value["windspeed"], 0)
+
+        mock_cps.return_value = 42
+        s.sample()
+        mock_cps.return_value = 21
+        s.sample()
+        data = s.value
+
+        self.assertEqual(data["windspeed_min"], 21)
+        self.assertEqual(data["windspeed_max"], 42)
+
+    @patch("piweather.sensors.A100R.counts_per_second")
+    def test_correctly_updates_runnung_avg_and_std(self, mock_cps):
+        s = sensors.A100R(pin=18)
+
+        mock_cps.return_value = 10
+        s.sample()
+        mock_cps.return_value = 20
+        s.sample()
+        data = s.value
+
+        self.assertAlmostEqual(
+            data["windspeed_avg"], np.mean([10, 20]), delta=0.01)
+        self.assertAlmostEqual(
+            data["windspeed_std"], np.std([10, 20], ddof=1), delta=0.01)
+
+    def test_retrieving_value_resets_values(self):
+        s = sensors.A100R(pin=18)
+
         s.counter_callback("channel")
-        self.assertGreater(s.value["windspeed"], 0)
-        self.assertEqual(s.value["windspeed"], 0)
+        s.sample()
+
+        self.assertGreater(s.value["windspeed_avg"], 0)
+        self.assertEqual(s.value["windspeed_avg"], 0)
+
+    @patch("piweather.sensors.A100R.counts_per_second")
+    def test_returns_0_if_not_enough_samples(self, mock_cps):
+        s = sensors.A100R(pin=18)
+
+        self.assertEqual(s.value["windspeed_avg"], 0)
+
+        mock_cps.return_value = 10
+        s.sample()
+        self.assertEqual(s.value["windspeed_std"], 0)
 
 
 smbus = MagicMock()
