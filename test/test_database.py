@@ -3,6 +3,7 @@ import piweather
 import piweather.database as db
 
 from piweather.helper import load_external
+from sqlalchemy import Integer, Float
 
 
 class TestDatabase(unittest.TestCase):
@@ -30,3 +31,12 @@ class TestDatabase(unittest.TestCase):
     def test_raises_exception_if_no_url_found(self):
         with self.assertRaises(RuntimeError):
             db.get_engine()
+
+    def test_can_map_python_types_to_SQL_columns(self):
+        with self.subTest("valid conversion"):
+            self.assertEqual(db.map_dtype(int), Integer)
+            self.assertEqual(db.map_dtype(float), Float)
+
+        with self.subTest("unkown type"):
+            with self.assertRaises(TypeError):
+                db.map_dtype(None)

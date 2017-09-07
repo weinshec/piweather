@@ -6,6 +6,11 @@ from piweather.sensors import Sensor
 
 class BMP280(Sensor):
 
+    dtypes = {
+        "pressure": float,
+        "temperature": float,
+    }
+
     DEFAULT_I2C_ADDR = 0x77
 
     OSRS = {
@@ -133,7 +138,10 @@ class BMP280(Sensor):
         T = self._compensated_temperature(raw_T)
         p = self._compensated_pressure(raw_p, T)
 
-        return p
+        return {
+            "pressure": p,
+            "temperature": T,
+        }
 
     def _get_calibration(self):
         cal_reg = self._bus.read_i2c_block_data(self.i2c_addr,

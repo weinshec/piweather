@@ -1,6 +1,15 @@
 import logging
 import piweather
+from datetime import datetime
 from sqlalchemy import create_engine
+from sqlalchemy import Integer, Float, DateTime
+
+
+DTYPE_MAP = {
+    int: Integer,
+    float: Float,
+    datetime: DateTime,
+}
 
 
 def get_engine(url=None):
@@ -16,3 +25,9 @@ def get_engine(url=None):
         piweather.db = create_engine(db_url)
 
     return piweather.db
+
+
+def map_dtype(dtype):
+    if dtype not in DTYPE_MAP:
+        raise TypeError("No column known to map for '{}'".format(dtype))
+    return DTYPE_MAP[dtype]

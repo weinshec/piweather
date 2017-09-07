@@ -1,4 +1,4 @@
-from piweather.measurements import Single, Statistical
+from piweather import Measurement
 from piweather.sensors import Dummy
 
 SENSORS = {
@@ -7,16 +7,14 @@ SENSORS = {
 }
 
 MEASUREMENTS = [
-    Single(
+    Measurement(
         SENSORS["dummy0"],
         frequency=5,
-        table="dummy0_single",
-        label="dummy measurement",
+        table="dummy0_table",
     ),
-    Statistical(
+    Measurement(
         SENSORS["dummy1"],
         frequency=1,
-        n=10,
-        table="dummy1_statistical",
+        table="dummy1_table",
     ),
 ]

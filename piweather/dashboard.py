@@ -20,17 +20,12 @@ def serve_layout():
     viewport = getattr(piweather.config, "VIEWPORT", timedelta(hours=24))
     ts = datetime.now() - viewport
 
-    panel_map = {
-        piweather.measurements.Single: SinglePanel,
-        piweather.measurements.Statistical: StatisticalPanel,
-    }
-
     layout = list()
     layout.append(
         html.H1(piweather.config.TITLE, style={'textAlign': 'center'}))
     measurements = getattr(piweather.config, "MEASUREMENTS", [])
     for measurement in measurements:
-        layout.append(panel_map[type(measurement)](measurement, since=ts))
+        layout.append(Panel(measurement, since=ts))
 
     return html.Div(layout, className="container")
 
@@ -47,7 +42,6 @@ class Panel(html.Div):
     def __init__(self, measurement, since, *args, **kwargs):
         self.measurement = measurement
         self.since = since
-        self.graph_layout.update(yaxis={"title": measurement.label})
         self.graph_layout["xaxis"].update(range=[since, datetime.now()])
         super(Panel, self).__init__(self.create_layout(), *args, **kwargs)
 
@@ -55,46 +49,20 @@ class Panel(html.Div):
         return [self.graph()]
 
     def graph(self):
-        raise NotImplementedError("Override this in subclass")
-
-
-class SinglePanel(Panel):
-
-    def graph(self):
         data = self.measurement.data(self.since)
-        if data is None:
-            data = {"time": [], "value": []}
+
+        plots = []
+        for name, values in data.items():
+            if name == "time":
+                continue
+            plots.append(
+                go.Scatter(x=data["time"], y=values, mode="lines", name=name)
+            )
+
         return dcc.Graph(
             id="graph_{}".format(self.measurement.table),
             figure={
-                "data": [go.Scatter(x=data["time"], y=data["value"])],
-                "layout": go.Layout(self.graph_layout),
-            },
-        )
-
-
-class StatisticalPanel(Panel):
-
-    def graph(self):
-        data = self.measurement.data(self.since)
-        if data is None:
-            data = {"time": [], "mean": [], "std": [], "min": [], "max": []}
-        return dcc.Graph(
-            id="graph_{}".format(self.measurement.table),
-            figure={
-                "data": [
-                    go.Scatter(x=data["time"], y=data["mean"],
-                               mode="markers", name="mean",
-                               error_y=dict(
-                                   type="data",
-                                   array=data["std"],
-                                   visible=True,
-                               )),
-                    go.Scatter(x=data["time"], y=data["min"],
-                               mode="lines", name="min"),
-                    go.Scatter(x=data["time"], y=data["max"],
-                               mode="lines", name="max"),
-                ],
+                "data": plots,
                 "layout": go.Layout(self.graph_layout),
             },
         )

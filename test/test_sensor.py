@@ -1,24 +1,16 @@
 import numpy as np
 import os
+import piweather
 import time
 import unittest
 
 from piweather import sensors
+from test import TransientDBTestCase
 from tempfile import NamedTemporaryFile
 from unittest.mock import patch, MagicMock
 
 
 class TestSensor(unittest.TestCase):
-
-    def test_Sensor_value_raises_exception_if_not_child_class(self):
-        s = sensors.Sensor()
-        with self.assertRaises(NotImplementedError):
-            s.value
-
-    def test_Sensor_has_value_property(self):
-        s = sensors.Dummy()
-        self.assertIsNotNone(s.value)
-        self.assertNotEqual(s.value, 0)
 
     def test_Sensor_can_cache_time_for_value(self):
         s = sensors.Dummy(cache=0.1)
@@ -26,6 +18,32 @@ class TestSensor(unittest.TestCase):
         self.assertEqual(val, s.value)
         time.sleep(0.2)
         self.assertNotEqual(val, s.value)
+
+    def test_Sensor_knows_returned_datatypes(self):
+        s = sensors.Dummy()
+        self.assertIn("random", s.dtypes)
+        self.assertEqual(s.dtypes["random"], float)
+
+    def test_Sensor_returns_dictionary_with_correct_types(self):
+        s = sensors.Dummy()
+        values = s.value
+        for k, v in s.dtypes.items():
+            self.assertIsInstance(values[k], v)
+
+    @patch("piweather.sensors.Dummy.read")
+    def test_Sensor_value_checks_consistency_of_read_dictionary(self, read):
+
+        with self.subTest("Wrong type"):
+            s = sensors.Dummy()
+            read.return_value = {"random": int(42)}
+            with self.assertRaises(TypeError):
+                s.value
+
+        with self.subTest("Incomplete"):
+            s = sensors.Dummy()
+            read.return_value = {}
+            with self.assertRaises(KeyError):
+                s.value
 
 
 class TestDS18x20(unittest.TestCase):
@@ -44,7 +62,7 @@ class TestDS18x20(unittest.TestCase):
             with NamedTemporaryFile(delete=False) as valid_file:
                 valid_file.write(self.valid)
             s = sensors.DS18x20(valid_file.name)
-            self.assertEqual(s.value, 22.562)
+            self.assertEqual(s.value["temperature"], 22.562)
         finally:
             os.remove(valid_file.name)
 
@@ -53,7 +71,7 @@ class TestDS18x20(unittest.TestCase):
             with NamedTemporaryFile(delete=False) as invalid_crc:
                 invalid_crc.write(self.invalid)
             s = sensors.DS18x20(invalid_crc.name)
-            np.testing.assert_equal(s.value, np.NaN)
+            np.testing.assert_equal(s.value["temperature"], np.NaN)
         finally:
             os.remove(invalid_crc.name)
 
@@ -62,33 +80,80 @@ class TestDS18x20(unittest.TestCase):
             with NamedTemporaryFile(delete=False) as t85000:
                 t85000.write(self.t85000)
             s = sensors.DS18x20(t85000.name)
-            np.testing.assert_equal(s.value, np.NaN)
+            np.testing.assert_equal(s.value["temperature"], np.NaN)
         finally:
             os.remove(t85000.name)
 
     def test_returns_NaN_file_is_not_readable(self):
         s = sensors.DS18x20("/tmp/nonexisting.file")
-        np.testing.assert_equal(s.value, np.NaN)
+        np.testing.assert_equal(s.value["temperature"], np.NaN)
 
 
-class TestA100R(unittest.TestCase):
+class TestA100R(TransientDBTestCase):
 
     def test_has_pin_attribute(self):
         s = sensors.A100R(pin=18)
         self.assertEqual(s.pin, 18)
 
+    def test_A100R_adds_scheduler_job(self):
+        pre = len(piweather.scheduler.get_jobs())
+        sensors.A100R(pin=18)
+        post = len(piweather.scheduler.get_jobs())
+
+        self.assertEqual(post, pre+1)
+
     def test_gpio_callback_increases_counts(self):
         s = sensors.A100R(pin=18)
-        self.assertEqual(s.read(), 0)
+        self.assertEqual(s.counts_per_second(), 0)
         s.counter_callback("channel")
-        self.assertGreater(s.read(), 0)
+        self.assertGreater(s.counts_per_second(), 0)
 
-    def test_retrieving_value_resets_counter(self):
+    @patch("piweather.sensors.A100R.counts_per_second")
+    def test_correctly_sets_min_and_max_values(self, mock_cps):
         s = sensors.A100R(pin=18)
-        self.assertEqual(s.read(), 0)
+
+        mock_cps.return_value = 42
+        s.sample()
+        mock_cps.return_value = 21
+        s.sample()
+        data = s.value
+
+        self.assertEqual(data["windspeed_min"], 21)
+        self.assertEqual(data["windspeed_max"], 42)
+
+    @patch("piweather.sensors.A100R.counts_per_second")
+    def test_correctly_updates_runnung_avg_and_std(self, mock_cps):
+        s = sensors.A100R(pin=18)
+
+        mock_cps.return_value = 10
+        s.sample()
+        mock_cps.return_value = 20
+        s.sample()
+        data = s.value
+
+        self.assertAlmostEqual(
+            data["windspeed_avg"], np.mean([10, 20]), delta=0.01)
+        self.assertAlmostEqual(
+            data["windspeed_std"], np.std([10, 20], ddof=1), delta=0.01)
+
+    def test_retrieving_value_resets_values(self):
+        s = sensors.A100R(pin=18)
+
         s.counter_callback("channel")
-        self.assertGreater(s.read(), 0)
-        self.assertEqual(s.read(), 0)
+        s.sample()
+
+        self.assertGreater(s.value["windspeed_avg"], 0)
+        self.assertEqual(s.value["windspeed_avg"], 0)
+
+    @patch("piweather.sensors.A100R.counts_per_second")
+    def test_returns_0_if_not_enough_samples(self, mock_cps):
+        s = sensors.A100R(pin=18)
+
+        self.assertEqual(s.value["windspeed_avg"], 0)
+
+        mock_cps.return_value = 10
+        s.sample()
+        self.assertEqual(s.value["windspeed_std"], 0)
 
 
 smbus = MagicMock()
@@ -150,4 +215,4 @@ class TestBMP280(unittest.TestCase):
         datasheet_data_example = [0x65, 0x5a, 0xc0, 0x7e, 0xed, 0x00]
         smbus.SMBus().read_i2c_block_data.return_value = datasheet_data_example
 
-        self.assertAlmostEqual(s.value, 100653.27, delta=0.01)
+        self.assertAlmostEqual(s.value["pressure"], 100653.27, delta=0.01)
