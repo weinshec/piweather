@@ -3,7 +3,7 @@ import numpy as np
 import piweather
 from datetime import datetime
 from piweather.database import get_engine, map_dtype
-from sqlalchemy import MetaData, Table, Column, Float, DateTime, sql
+from sqlalchemy import MetaData, Table, Column, sql
 
 
 class Measurement(object):
@@ -89,43 +89,3 @@ class Measurement(object):
 
             table = Table(self.table, MetaData(get_engine()), *columns)
             table.create(checkfirst=True)
-
-
-class Single(Measurement):
-
-    pass
-
-
-class Statistical(Measurement):
-
-    columns = {
-        "time": DateTime,
-        "mean": Float,
-        "std": Float,
-        "min": Float,
-        "max": Float,
-     }
-
-    def __init__(self, sensor, n, *args, **kwargs):
-        super(Statistical, self).__init__(sensor, *args, **kwargs)
-        self._n = n
-        self._data = list()
-
-    def acquire(self):
-        self._data.append(self.sensor.value)
-
-        if not self.acquisition_complete():
-            return
-
-        self._store(
-            time=datetime.now(),
-            mean=np.mean(self._data),
-            std=np.std(self._data),
-            min=np.min(self._data),
-            max=np.max(self._data),
-        )
-
-        self._data = list()
-
-    def acquisition_complete(self):
-        return self._n - len(self._data) == 0
