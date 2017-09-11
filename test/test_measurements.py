@@ -78,3 +78,15 @@ class TestMeasurements(TransientDBTestCase):
         data = m.data()
         self.assertIn("time", data)
         self.assertListEqual(data["time"], [])
+
+    def test_can_retrieve_subset_of_columns(self):
+        m = Measurement(sensors.Dummy(), table="dummy_table")
+        m.acquire()
+
+        with self.subTest("list argument"):
+            data = m.data(column=["randint"])
+            self.assertNotIn("random", data)
+
+        with self.subTest("string argument"):
+            data = m.data(column="randint")
+            self.assertNotIn("random", data)

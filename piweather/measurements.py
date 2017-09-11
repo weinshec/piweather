@@ -64,20 +64,10 @@ class Measurement(object):
             insert = table.insert().values(**self.last)
             con.execute(insert)
 
-    def data(self, since=None):
-        with get_engine().connect() as con:
-            table = Table(self.table, MetaData(get_engine()), autoload=True)
-
-            stm = sql.select([table])
-            if since is not None:
-                stm.append_whereclause(table.c.time > since)
-            rs = con.execute(stm)
-
-            matrix = np.array(rs.fetchall())
-            if matrix.shape == (0,):
-                return {col: [] for col in rs.keys()}
-            else:
-                return {col: matrix[:, i] for i, col in enumerate(rs.keys())}
+    def data(self, column=None, since=None):
+        return Measurement.retrieve_data(self.table,
+                                         column=column,
+                                         since=since)
 
     def _init_db_table(self):
         logging.debug("create table '{}' if not exists".format(self.table))
@@ -89,3 +79,26 @@ class Measurement(object):
 
             table = Table(self.table, MetaData(get_engine()), *columns)
             table.create(checkfirst=True)
+
+    @staticmethod
+    def retrieve_data(table, column=None, since=None):
+        with get_engine().connect() as con:
+            table = Table(table, MetaData(get_engine()), autoload=True)
+
+            if column is None:
+                stm = sql.select([table])
+            elif type(column) == str:
+                stm = sql.select([table.c[column]])
+            elif type(column) == list:
+                stm = sql.select([table.c[col] for col in column])
+
+            if since is not None:
+                stm.append_whereclause(table.c.time > since)
+
+            rs = con.execute(stm)
+
+            matrix = np.array(rs.fetchall())
+            if matrix.shape == (0,):
+                return {col: [] for col in rs.keys()}
+            else:
+                return {col: matrix[:, i] for i, col in enumerate(rs.keys())}
