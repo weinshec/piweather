@@ -84,9 +84,9 @@ class TestMeasurements(TransientDBTestCase):
         m.acquire()
 
         with self.subTest("list argument"):
-            data = m.data(column=["randint"])
+            data = m.data(columns=["randint"])
             self.assertNotIn("random", data)
 
         with self.subTest("string argument"):
-            data = m.data(column="randint")
+            data = m.data(columns="randint")
             self.assertNotIn("random", data)

@@ -1,21 +1,21 @@
 import dash_html_components as html
 import piweather
 
-from piweather.dashboard import Title, MeasurementTable, ScatterPlot
-from piweather.helper import get_viewport_since
+from piweather.dashboard import TitleBar, MeasurementTable, Graph, Scatter
 
 
 def layout():
+    measurements = piweather.config.MEASUREMENTS
+
     layout = [
-        Title(),
-        MeasurementTable(piweather.config.MEASUREMENTS[0]),
-        ScatterPlot(
+        TitleBar(),
+        MeasurementTable(measurements[0]),
+        Graph(
             [
-                ("dummy0_table/random", {"name": "foobar"}),
-                ("dummy1_table/randint", {"mode": "lines"})
+                Scatter(measurements[0], "random", mode="lines"),
+                Scatter(measurements[1], "randint", name="integer"),
             ],
-            ylabel="some random numbers",
-            since=get_viewport_since())
+            ylabel="some random numbers",)
     ]
 
     return html.Div(layout, className="container")
