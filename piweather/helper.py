@@ -1,7 +1,10 @@
 import importlib
 import logging
 import os
+import piweather
 import sys
+
+from datetime import datetime, timedelta
 
 
 def load_external(path):
@@ -18,3 +21,8 @@ def load_external(path):
     else:
         config = importlib.machinery.SourceFileLoader("config", path)
         return config.load_module()
+
+
+def get_viewport_since():
+    viewport = getattr(piweather.config, "VIEWPORT", timedelta(hours=24))
+    return datetime.now() - viewport

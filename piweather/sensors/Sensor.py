@@ -22,6 +22,10 @@ class Sensor(object):
             self._last_query = time.monotonic()
         return self._last_value
 
+    @property
+    def last(self):
+        return self._last_value
+
     def read(self):
         raise NotImplementedError("Override this method!")
 

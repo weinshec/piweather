@@ -50,7 +50,7 @@ class TestMeasurements(TransientDBTestCase):
 
     def test_measurment_has_last_acquisition_stored(self):
         m = Measurement(sensors.Dummy(), table="dummy_table")
-        self.assertIsNone(m.last)
+        self.assertEqual(m.last, {})
         m.acquire()
         self.assertIn("time", m.last)
         for key in sensors.Dummy.dtypes.keys():

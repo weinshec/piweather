@@ -41,7 +41,7 @@ class Measurement(object):
 
     @property
     def last(self):
-        return getattr(self, "_last", None)
+        return getattr(self, "_last", {})
 
     @last.setter
     def last(self, values):
