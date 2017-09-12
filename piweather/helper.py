@@ -23,6 +23,6 @@ def load_external(path):
         return config.load_module()
 
 
-def get_viewport_since():
+def get_viewport():
     viewport = getattr(piweather.config, "VIEWPORT", timedelta(hours=24))
     return datetime.now() - viewport

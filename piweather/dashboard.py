@@ -5,7 +5,7 @@ import plotly.graph_objs as go
 import piweather
 import uuid
 
-from piweather.helper import get_viewport_since
+from piweather.helper import get_viewport
 
 
 def create_app():
@@ -88,7 +88,7 @@ class Scatter(go.Scatter):
 
     def __init__(self, measurement, column, **kwargs):
         data = measurement.data(columns=["time", column],
-                                since=get_viewport_since())
+                                since=get_viewport())
         kwargs.setdefault("mode", "markers")
         kwargs.setdefault("name", column)
         super(Scatter, self).__init__(x=data["time"], y=data[column], **kwargs)
