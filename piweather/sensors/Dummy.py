@@ -6,6 +6,7 @@ class Dummy(Sensor):
 
     dtypes = {
         "random": float,
+        "randint": int,
     }
 
     def __init__(self, *args, **kwargs):
@@ -13,5 +14,6 @@ class Dummy(Sensor):
 
     def read(self):
         return {
-            "random": random.random()
+            "random": random.random(),
+            "randint": random.randint(0, 5)
         }

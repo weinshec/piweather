@@ -7,7 +7,7 @@ import piweather
 import sys
 import time
 
-from piweather.dashboard import create_app
+from piweather.dashboard import create_app, default_layout
 from piweather.helper import load_external
 
 
@@ -42,6 +42,20 @@ if __name__ == '__main__':
 
     if args.dash:
         piweather.app = create_app()
+
+        try:
+            dash_layout = load_external(piweather.config.DASH).layout
+        except AttributeError:
+            logging.warning(
+                "Dash file not specified in config {}".format(args.config))
+            dash_layout = default_layout
+        except FileNotFoundError:
+            logging.warning(
+                "Dash file not found at {}".format(piweather.config.DASH))
+            dash_layout = default_layout
+        finally:
+            piweather.app.layout = dash_layout
+
         piweather.app.run_server(
             host=piweather.config.HOSTS,
             port=piweather.config.PORT,

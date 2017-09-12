@@ -50,7 +50,7 @@ class TestMeasurements(TransientDBTestCase):
 
     def test_measurment_has_last_acquisition_stored(self):
         m = Measurement(sensors.Dummy(), table="dummy_table")
-        self.assertIsNone(m.last)
+        self.assertEqual(m.last, {})
         m.acquire()
         self.assertIn("time", m.last)
         for key in sensors.Dummy.dtypes.keys():
@@ -78,3 +78,15 @@ class TestMeasurements(TransientDBTestCase):
         data = m.data()
         self.assertIn("time", data)
         self.assertListEqual(data["time"], [])
+
+    def test_can_retrieve_subset_of_columns(self):
+        m = Measurement(sensors.Dummy(), table="dummy_table")
+        m.acquire()
+
+        with self.subTest("list argument"):
+            data = m.data(columns=["randint"])
+            self.assertNotIn("random", data)
+
+        with self.subTest("string argument"):
+            data = m.data(columns="randint")
+            self.assertNotIn("random", data)

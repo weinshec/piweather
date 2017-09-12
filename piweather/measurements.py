@@ -41,7 +41,7 @@ class Measurement(object):
 
     @property
     def last(self):
-        return getattr(self, "_last", None)
+        return getattr(self, "_last", {})
 
     @last.setter
     def last(self, values):
@@ -51,6 +51,10 @@ class Measurement(object):
     @property
     def table(self):
         return self._table
+
+    @property
+    def columns(self):
+        return self.sensor.dtypes.keys()
 
     @property
     def sensor(self):
@@ -64,13 +68,20 @@ class Measurement(object):
             insert = table.insert().values(**self.last)
             con.execute(insert)
 
-    def data(self, since=None):
+    def data(self, columns=None, since=None):
         with get_engine().connect() as con:
             table = Table(self.table, MetaData(get_engine()), autoload=True)
 
-            stm = sql.select([table])
+            if columns is None:
+                stm = sql.select([table])
+            elif type(columns) == str:
+                stm = sql.select([table.c[columns]])
+            elif type(columns) == list:
+                stm = sql.select([table.c[col] for col in columns])
+
             if since is not None:
                 stm.append_whereclause(table.c.time > since)
+
             rs = con.execute(stm)
 
             matrix = np.array(rs.fetchall())

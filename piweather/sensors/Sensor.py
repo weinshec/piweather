@@ -8,7 +8,7 @@ class Sensor(object):
     def __init__(self, cache=0):
         self._cache = cache
         self._last_query = 0
-        self._last_value = 0
+        self._last_value = {}
         if self.dtypes == {}:
             raise NotImplementedError(
                 "Must specify dtypes for {}".format(type(self)))
@@ -20,6 +20,10 @@ class Sensor(object):
             self._check_dtype_consistency(new_values)
             self._last_value = new_values
             self._last_query = time.monotonic()
+        return self._last_value
+
+    @property
+    def last(self):
         return self._last_value
 
     def read(self):
